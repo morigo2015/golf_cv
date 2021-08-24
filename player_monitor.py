@@ -5,7 +5,7 @@
 #   's' - shot
 #   'z' - on/off zone  drawing
 #   left-mouse - add corner to zone, right-mose - reset zone
-#   '1'-'9' - delays
+#   '-, + - decrease/increase play speed
 
 import logging
 import datetime
