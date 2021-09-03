@@ -17,9 +17,12 @@ from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
 from my_util import FrameStream, Util
-from swing_cutter import FrameProcessor  # delete if not need external FrameProc (internal dummy stub will be used instead)
+from swing_cutter import \
+    FrameProcessor  # delete if not need external FrameProc (internal dummy stub will be used instead)
 
-logger_mon = Util.get_logger('_mon','debug_log_monit.log')
+logger_mon = Util.get_logger('_mon', 'debug_log_monit.log')
+
+
 class Player:
     # INPUT_SOURCE = 'rtsp://192.168.1.170:8080/h264_ulaw.sdp'
     # INPUT_SOURCE = 'video/phone-range-2.mp4'  # 0.avi b2_cut phone-profil-evening-1.mp4 fac-2 nb-profil-1 (daylight) phone-range-2.mp4
@@ -33,9 +36,10 @@ class Player:
     WIN_XY = (0, 0)  # move to left
 
     class _SpeedRate:
-        SPEED_RATES_DESCRIPTORS = [(0.017,'fps=0.5'), (0.033,'fps=1'), (0.066,'fps=2'), (0.125, '1/8'), (0.25, '1/4'), (0.5, '1/2'),
+        SPEED_RATES_DESCRIPTORS = [(0.017, 'fps=0.5'), (0.033, 'fps=1'), (0.066, 'fps=2'), (0.125, '1/8'),
+                                   (0.25, '1/4'), (0.5, '1/2'),
                                    (1.0, 'Normal'), (2.0, 'x2'), (4.0, 'x4'), (8.0, 'x8')]
-        speed_rates, speed_strings = zip (*SPEED_RATES_DESCRIPTORS)
+        speed_rates, speed_strings = zip(*SPEED_RATES_DESCRIPTORS)
         NORMAL_DELAY = 30
 
         def __init__(self, speed_rate=None, speed_str=None):
@@ -61,11 +65,11 @@ class Player:
 
         def increase_rate(self):
             self.rate_index += 1
-            self.rate_index = min(self.rate_index,len(self.SPEED_RATES_DESCRIPTORS)-1)
+            self.rate_index = min(self.rate_index, len(self.SPEED_RATES_DESCRIPTORS) - 1)
 
         def decrease_rate(self):
             self.rate_index -= 1
-            self.rate_index = max(self.rate_index,0)
+            self.rate_index = max(self.rate_index, 0)
 
     class _Window:
         def __init__(self, win_name, win_xy):
@@ -78,18 +82,19 @@ class Player:
         def __del__(self):
             cv.destroyWindow(self.win_name)
 
-    def __init__(self):
+    def __init__(self, frame_processor=None):
         self.frame_mode = Player.FRAME_MODE_INITIAL
         self.zone_draw_mode = Player.ZONE_DRAW_INITIAL  # True - draw active zone (corners_lst) on all images
         self.input_source = None
         self.input_fs = None
         self.speed_rate = self._SpeedRate(speed_str='Normal')
         self.window = self._Window(self.WIN_NAME, self.WIN_XY)
+        self.frame_processor = frame_processor
         # cv.namedWindow(Player.WIN_NAME)
         # cv.setWindowProperty(Player.WIN_NAME, cv.WND_PROP_FULLSCREEN, 1.0)
         # cv.moveWindow(Player.WIN_NAME, Player.WIN_XY[0], Player.WIN_XY[1])
 
-    def play(self, input_source: str, speed_string = 'Normal'):
+    def play(self, input_source: str, speed_string='Normal'):
 
         print(f"New file is playing: {input_source}")
         self.input_source = input_source
@@ -102,7 +107,7 @@ class Player:
                 self.restart_track()
                 continue
 
-            out_frame = frame  # no processing
+            out_frame = self.frame_processor(frame) if self.frame_processor else frame  # no processing
             self._draw_source_name(out_frame)
             self._draw_delay(out_frame)
 
