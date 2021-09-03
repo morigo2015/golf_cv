@@ -482,8 +482,8 @@ def test_async_read():
     cv.destroyAllWindows()
 
 def main():
-    test_window_top()
-
+    # test_window_top()
+    test_move_window()
 
 if __name__ == '__main__':
     main()

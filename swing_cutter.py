@@ -90,6 +90,7 @@ class History:
 class FrameProcessor:
     SWING_CLIP_PREFIX: str = "swings/"
     INPUT_SCALE: float = 0.7
+    SHOW_START_ZONE = True  # patch start zone to frame
     frame_cnt: int = -1
     swing_cnt = 0
 
@@ -124,6 +125,9 @@ class FrameProcessor:
 
         if zone_draw_mode:
             frame = self.start_zone.draw(frame)
+
+        if self.SHOW_START_ZONE:
+            self.start_zone.zone_roi.patch_img(frame, self.start_zone.thresh_img, (10,40))
         return frame
 
     def __del__(self):
@@ -156,6 +160,20 @@ class ROI:
 
     def extract_img(self, frame):
         return frame[self.y: self.y + self.h, self.x: self.x + self.w]
+
+    def check_shape(self, img):
+        return True if img.shape[0]==self.w and img.shape[1]==self.h else False
+
+    def patch_img(self, frame, img, xy=None):
+        if not self.check_shape(img):
+            log_zone.error(f"pathch_img:: illegal img shape {img.shape=} when roi={self}")
+            frame = None
+        if xy is None: # set patch in-place
+            x = self.x
+            y = self.y
+        else:  # set patch in new place (xy)
+            x, y = xy
+        frame[y: y + self.h, x: x + self.w] = cv.cvtColor(img,cv.COLOR_GRAY2BGR)
 
     def is_touched_to_contour(self, contour):
         # True if contour touch any border of roi
@@ -200,6 +218,7 @@ class StartZone:
         self.win_name: str_ = win_name
         self.need_reset = False  # reset is delayed till next frame to save consistency between ball_is_clicked()/zone_is_found()/get_current_state()
         self.new_click_xy = None  # store new click_xy till actual reset (in ball_is_clicked())
+        self.thresh_img = None
         if need_load:
             self.load()
         cv.setMouseCallback(win_name, self._mouse_callback, param=self)
@@ -337,13 +356,13 @@ class StartZone:
         # analyze current state of StartArea: 'E' - empty, 'B' - ball, 'M' - mess
         roi_img = self.zone_roi.extract_img(frame)
         gray = self._preprocess_image(roi_img, "Stream")
-        _, thresh_img = cv.threshold(gray, self.thresh_val, 255, cv.THRESH_BINARY)
+        _, self.thresh_img = cv.threshold(gray, self.thresh_val, 255, cv.THRESH_BINARY)
         kernel = np.ones((self.BLUR_LEVEL, self.BLUR_LEVEL), np.uint8)
-        thresh_img = cv.morphologyEx(thresh_img, cv.MORPH_OPEN, kernel)
-        thresh_img = cv.morphologyEx(thresh_img, cv.MORPH_CLOSE, kernel)
-        Util.show_img(thresh_img, "Stream:   thresh_img", 1)
+        self.thresh_img = cv.morphologyEx(self.thresh_img, cv.MORPH_OPEN, kernel)
+        self.thresh_img = cv.morphologyEx(self.thresh_img, cv.MORPH_CLOSE, kernel)
+        # Util.show_img(self.thresh_img, "Stream:   self.thresh_img", 1)
 
-        contours, _ = cv.findContours(thresh_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv.findContours(self.thresh_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
         contours = [cont for cont in contours if self.ball_area * self.MIN_BALL_AREA_RATIO < cv.contourArea(cont)]  # remove too small conts
         if len(contours) == 0:
