@@ -135,7 +135,6 @@ class FrameProcessor:
         print(f"Totally swing found: {FrameProcessor.swing_cnt}")
         # print(f"\nTimeMeasure results:\n{TimeMeasure.results()}")
 
-
 class ROI:
 
     def __init__(self, frame_shape: Tuple[int, int, int], point: Point_ = None, roi_size: int = None, contour: np.ndarray = None):
