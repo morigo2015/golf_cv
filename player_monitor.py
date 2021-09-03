@@ -176,7 +176,7 @@ class Player:
 
 class WatchDog:
     FOLDER_TO_WATCH = "swings/"
-    FILES_TO_WATCH = ["*.avi"]
+    FILES_TO_WATCH = ["*.avi", "*.mp4"]
     new_file_arrived: bool = False
     __new_file_name = None
 
