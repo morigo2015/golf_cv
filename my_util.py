@@ -44,6 +44,13 @@ class Colours:
     # COLORS=[ eval(v) for v in COLOR_NAMES]
 
 
+class Keys:
+    ESC = 27
+    ENTER = 13
+    SPACE = 32
+    DEL = 255
+
+
 class Util:
     # all methods are static
     out_fname = "img/res"
@@ -188,6 +195,7 @@ class Util:
         logger.propagate = propagate
         return logger
 
+
 class FrameStream:
     class AsyncVideoStream:
         DELAY_EMPTY = 0.001  # delay when queue is full (in sec)
@@ -238,7 +246,8 @@ class FrameStream:
                     if self.show_qsize:
                         # display the size of the queue on the frame
                         qsz = self.qsize()  # (current size, max size)
-                        cv.putText(frame, f"Queue: {qsz[0]}/{qsz[1]} Dropped:{self.dropped_cnt}", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0),
+                        cv.putText(frame, f"Queue: {qsz[0]}/{qsz[1]} Dropped:{self.dropped_cnt}", (10, 30),
+                                   cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0),
                                    2)
                     return True, frame
                 except Empty:
@@ -248,23 +257,10 @@ class FrameStream:
                 if self.stopped:
                     return False, None
 
-        def re_init(self, handle):
-            # reinit after input stream has been broken and restored
-            if handle:
-                self.stream = handle
-            self.stopped = False
-            self.start()
-
         def clear(self):
             with self.Q.mutex:
                 self.Q.queue.clear()
             logging.debug(f"AsyncVideoStream.clear:: queue is cleared. qsize = {self.qsize()}")
-            # while not self.Q.empty():
-            #     try:
-            #         self.Q.get(False)
-            #     except Empty:
-            #         continue
-            #     self.Q.task_done()
 
         def start(self):
             # start a thread to read frames from the file video stream
@@ -287,6 +283,7 @@ class FrameStream:
 
     def __init__(self, source_path, show_qsize=True):
         self.path = source_path
+        self.show_qsize = show_qsize
         self.frame_cnt = 0
         self.async_mode = False  # True for rtsp, False for any else
         self.suspend_mode = False  # set by self.suspend() fill self.resume() is called
@@ -313,6 +310,25 @@ class FrameStream:
 
         self.start = time.time()
 
+    def rtsp_reconnect(self):
+        print("Error! Connection is lost!! Waiting for connect! Press ESC or 'q' or 'Q' to exit.")
+
+        while True:
+            ch = cv.waitKey(1000)
+            if ch == Keys.ESC or ch == ord('q') or ch == ord('Q'):
+                print('User Exit')
+                return False, None
+            else:
+                self.cap = cv.VideoCapture(self.path)
+                del self.async_mgr
+                self.async_mgr = self.AsyncVideoStream(self.cap, show_qsize=self.show_qsize)
+                self.async_mgr.start()
+
+                res, frame = self.async_mgr.read()
+                if res:
+                    print("connection is restored")
+                    return True, frame
+
     def next_frame(self):
         self.frame_cnt += 1
         if self.mode == 'images':
@@ -328,6 +344,8 @@ class FrameStream:
             is_opened, frame = self.cap.read()
         else:  # rtsp - async
             is_opened, frame = self.async_mgr.read()
+            if frame is None:
+                is_opened, frame = self.rtsp_reconnect()
         frame_name = f"Frame_{self.frame_cnt}" if is_opened else None
         return frame, frame_name, self.frame_cnt
 
@@ -378,15 +396,15 @@ def test_window_top():
     win2_name = "win2"
     # win1 = cv.namedWindow(win1_name, cv.WINDOW_NORMAL)  # cv.WINDOW_FULLSCREEN ) #)
     # win2 = cv.namedWindow(win2_name, cv.WINDOW_NORMAL)  # cv.WINDOW_FULLSCREEN ) #)
-    frame = np.ones((100, 200,1), np.uint8)
+    frame = np.ones((100, 200, 1), np.uint8)
     cv.imshow(win1_name, frame)
     cv.imshow(win2_name, frame)
     ch = cv.waitKey(0)
     while True:
         ch = cv.waitKey(1)
-        if ch==ord('q'):
+        if ch == ord('q'):
             break
-        if ch==ord('1'):
+        if ch == ord('1'):
             # cv.namedWindow("get focus",cv.WINDOW_NORMAL)
             # cv.imshow("get focus",frame)
             # cv.setWindowProperty("get focus", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN )
@@ -399,16 +417,17 @@ def test_window_top():
 
             cv.destroyWindow(win1_name)
             cv.namedWindow(win1_name)
-            cv.imshow(win1_name,frame)
+            cv.imshow(win1_name, frame)
 
             # vis_before = cv.getWindowProperty(win1_name, cv.WND_PROP_TOPMOST)
             # cv.setWindowProperty(win1_name, cv.WND_PROP_TOPMOST, 1)
             # cv.imshow(win1_name,frame)
             # vis_after = cv.getWindowProperty(win1_name, cv.WND_PROP_TOPMOST)
             # print(f"{vis_before=} {vis_after=}")
-        if ch==ord('p'):
+        if ch == ord('p'):
             vis = cv.getWindowProperty(win1_name, cv.WND_PROP_TOPMOST)
             print(f"{vis=} ")
+
 
 def test_move_window():
     win_name = "tst win"
@@ -426,24 +445,26 @@ def test_move_window():
 
     while True:
         ch = cv.waitKey(1)
-        if ch==ord('q'):
+        if ch == ord('q'):
             break
-        x,y,w,h = cv.getWindowImageRect(win_name)
+        x, y, w, h = cv.getWindowImageRect(win_name)
         # print(f"before move: {cv.getWindowImageRect(win_name)=}")
-        if ch==ord('r'):
-            cv.moveWindow(win_name,999999,0)
-        if ch==ord('l'):
-            cv.moveWindow(win_name, -999999,0)
-        if ch==ord('u'):
-            cv.moveWindow(win_name,0,-999999)
-        if ch==ord('d'):
-            cv.moveWindow(win_name, 0,999999)
+        if ch == ord('r'):
+            cv.moveWindow(win_name, 999999, 0)
+        if ch == ord('l'):
+            cv.moveWindow(win_name, -999999, 0)
+        if ch == ord('u'):
+            cv.moveWindow(win_name, 0, -999999)
+        if ch == ord('d'):
+            cv.moveWindow(win_name, 0, 999999)
         # print(f"after: {cv.getWindowImageRect(win_name)=}")
         print(f"{cv.getWindowProperty(win_name,cv.WND_PROP_TOPMOST)=}")
-        is_visible = cv.getWindowProperty(win_name,cv.WND_PROP_TOPMOST)
+        is_visible = cv.getWindowProperty(win_name, cv.WND_PROP_TOPMOST)
         if not is_visible:
             cv.setWindowProperty(win_name, cv.WND_PROP_TOPMOST, 1.0)
-        print(f"{cv.getWindowProperty(win_name,cv.WND_PROP_TOPMOST)=}, {cv.getWindowProperty(win_name,cv.WND_PROP_VISIBLE)=} ")
+        print(
+            f"{cv.getWindowProperty(win_name,cv.WND_PROP_TOPMOST)=}, {cv.getWindowProperty(win_name,cv.WND_PROP_VISIBLE)=} ")
+
 
 def test_async_read():
     logging.basicConfig(filename='debug_test_async.log', level=logging.DEBUG)
@@ -476,14 +497,17 @@ def test_async_read():
         elif ch == ord('r'):
             logging.debug('****************  r pressed')
             input_fs.async_mgr.clear()
-    print(f"Finish. Duration={input_fs.total_time():.0f} sec, {input_fs.frame_cnt} frames,  fps={input_fs.fps():.1f} f/s")
+    print(
+        f"Finish. Duration={input_fs.total_time():.0f} sec, {input_fs.frame_cnt} frames,  fps={input_fs.fps():.1f} f/s")
 
     del input_fs
     cv.destroyAllWindows()
 
+
 def main():
     # test_window_top()
     test_move_window()
+
 
 if __name__ == '__main__':
     main()

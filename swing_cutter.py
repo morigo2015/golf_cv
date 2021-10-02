@@ -30,8 +30,8 @@ def dummy_func():
 
 
 class History:
-    FRAME_BUFF_SZ: int = 300
-    MAX_CLIP_SZ: int = 100
+    FRAME_BUFF_SZ: int = 400
+    MAX_CLIP_SZ: int = 200
     frames_descr_buffer: Deque = deque(maxlen=FRAME_BUFF_SZ)
     last_swing_info = None  # ( file_name, state_string_squeezed ) for last written swing
 
