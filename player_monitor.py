@@ -16,24 +16,14 @@ import cv2 as cv
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
-from my_util import FrameStream, Util, Keys
-from swing_cutter import \
-    FrameProcessor  # delete if needn't external FrameProc (internal dummy stub will be used instead)
+from my_util import FrameStream, Util, Keys, cfg
 
 logger_mon = Util.get_logger('_mon', 'debug_log_monit.log')
 
 
 class Player:
-    INPUT_SOURCE = 'rtsp://192.168.1.170:8080/h264_ulaw.sdp'
-    # INPUT_SOURCE = 'video/phone-range-2.mp4'  # 0.avi b2_cut phone-profil-evening-1.mp4 fac-2 nb-profil-1 (daylight) phone-range-2.mp4
-    # INPUT_SOURCE = '/run/user/1000/gvfs/mtp:host=Xiaomi_Redmi_Note_8_Pro_fukvv87l8pbuo7eq/Internal shared storage/DCIM/Camera/tst2.mp4'
 
-    REPEAT_MODE = True
-
-    FRAME_MODE_INITIAL = False
-    ZONE_DRAW_INITIAL = True
     WIN_NAME = "Swing Player"
-    WIN_XY = (0, 0)  # move to left
 
     class _SpeedRate:
         SPEED_RATES_DESCRIPTORS = [(0.017, 'fps=0.5'), (0.033, 'fps=1'), (0.066, 'fps=2'), (0.125, '1/8'),
@@ -83,16 +73,13 @@ class Player:
             cv.destroyWindow(self.win_name)
 
     def __init__(self, frame_processor=None):
-        self.frame_mode = Player.FRAME_MODE_INITIAL
-        self.zone_draw_mode = Player.ZONE_DRAW_INITIAL  # True - draw active zone (corners_lst) on all images
+        self.frame_mode = cfg.FRAME_MODE_INITIAL
+        self.zone_draw_mode = cfg.ZONE_DRAW_INITIAL  # True - draw active zone (corners_lst) on all images
         self.input_source = None
         self.input_fs = None
         self.speed_rate = self._SpeedRate(speed_str='Normal')
-        self.window = self._Window(self.WIN_NAME, self.WIN_XY)
+        self.window = self._Window(self.WIN_NAME, cfg.WIN_XY)
         self.frame_processor = frame_processor
-        # cv.namedWindow(Player.WIN_NAME)
-        # cv.setWindowProperty(Player.WIN_NAME, cv.WND_PROP_FULLSCREEN, 1.0)
-        # cv.moveWindow(Player.WIN_NAME, Player.WIN_XY[0], Player.WIN_XY[1])
 
     def play(self, input_source: str, speed_string='Normal'):
 
@@ -160,7 +147,7 @@ class Player:
         del self.input_fs
         self.input_fs = FrameStream(self.input_source)
         del self.window
-        self.window = self._Window(self.WIN_NAME, self.WIN_XY)
+        self.window = self._Window(self.WIN_NAME, cfg.WIN_XY)
 
     def _draw_source_name(self, frame):
         # add name if input source to frame
@@ -192,13 +179,13 @@ class WatchDog:
 
     @staticmethod
     def set_watchdog():
-        my_event_handler = PatternMatchingEventHandler(WatchDog.FILES_TO_WATCH, None, True, True)
+        my_event_handler = PatternMatchingEventHandler(cfg.FILES_TO_WATCH, None, True, True)
         my_event_handler.on_closed = WatchDog.on_closed
         # my_event_handler.on_any_event = WatchDog.on_any_event  # remove if not debug
         my_event_handler.on_any_event = lambda event: logger_mon.debug(f"wathcdog: {event}")
 
         my_observer = Observer()
-        my_observer.schedule(my_event_handler, WatchDog.FOLDER_TO_WATCH, recursive=False)
+        my_observer.schedule(my_event_handler, cfg.FOLDER_TO_WATCH, recursive=False)
 
         my_observer.start()
 
@@ -216,7 +203,6 @@ def main():
     player = Player()
     logger_mon.debug(f"\n\n\n\n\nPlayer-monitor started: ")
 
-    # MONITOR_MODE = True
     WatchDog.set_watchdog()
     while not WatchDog.new_file_arrived:
         time.sleep(1)

@@ -4,7 +4,7 @@ import glob
 import time
 from threading import Thread
 from queue import Queue, Empty, Full
-
+import yaml
 import numpy as np
 import cv2 as cv
 from typing import List, Tuple, Union, Any, TypeVar, Dict, Deque
@@ -387,6 +387,29 @@ class WriteStream:
         pass
         # self.out.release()
         # logging.debug(f"file {self.file_name} released")
+
+
+class Config:
+    pass
+cfg = None
+
+def _config_init(config_file_path='config.yaml'):
+    global cfg
+    if cfg is not None:
+        return
+    cfg = Config()
+    try:
+        with open(config_file_path, 'r') as cfg_file:
+            cfg_dict = yaml.safe_load(cfg_file)
+    except FileNotFoundError:
+        print(f"Cannot find Cfg file {config_file_path}")
+        exit()
+    # convert to attr, so it can be used as cfg.PARAM_NAME
+    for k in cfg_dict:
+        setattr(cfg,k,cfg_dict[k])
+
+
+_config_init()
 
 
 # -------------------------------------------------------------------------------------------------------------
