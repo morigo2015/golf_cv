@@ -16,7 +16,7 @@ import cv2 as cv
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
-from my_util import FrameStream, Util
+from my_util import FrameStream, Util, Keys
 from swing_cutter import \
     FrameProcessor  # delete if needn't external FrameProc (internal dummy stub will be used instead)
 
@@ -117,7 +117,7 @@ class Player:
             if WatchDog.new_file_arrived:
                 self.change_track()
                 continue
-            if ch == ord('q'):
+            if ch == ord('q') or ch == ord('Q') or ch == Keys.ESC:
                 return
             elif ch == ord('g'):
                 self.frame_mode = False
