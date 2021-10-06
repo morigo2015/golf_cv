@@ -1,9 +1,9 @@
-
+# monitor config:
 FRAME_MODE_INITIAL : False
-ZONE_DRAW_INITIAL : True
 WIN_XY : [0, 0]
-
 FOLDER_TO_WATCH : "swings/"
 FILES_TO_WATCH : ["*.avi", "*.mp4"]
-
 LOG_FOLDER : "logs/"
+
+# observer config
+ZONE_DRAW_INITIAL : True

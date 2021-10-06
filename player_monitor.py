@@ -7,11 +7,9 @@
 #   left-mouse - add corner to zone, right-mose - reset zone
 #   '-, + - decrease/increase play speed
 
-import logging
 import datetime
 import os.path
 import time
-import logging
 import cv2 as cv
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
@@ -74,7 +72,6 @@ class Player:
 
     def __init__(self, frame_processor=None):
         self.frame_mode = cfg.FRAME_MODE_INITIAL
-        self.zone_draw_mode = cfg.ZONE_DRAW_INITIAL  # True - draw active zone (corners_lst) on all images
         self.input_source = None
         self.input_fs = None
         self.speed_rate = self._SpeedRate(speed_str='Normal')
@@ -116,8 +113,6 @@ class Player:
                 snap_file_name = f'img/snap_{datetime.datetime.now().strftime("%d%m%Y_%H%M%S")}.png'
                 cv.imwrite(snap_file_name, out_frame)
                 continue
-            elif ch == ord('z'):
-                self.zone_draw_mode = not self.zone_draw_mode
             elif ch == ord('-') or ch == ord('_'):
                 self.speed_rate.decrease_rate()
                 continue
@@ -182,7 +177,7 @@ class WatchDog:
         my_event_handler = PatternMatchingEventHandler(cfg.FILES_TO_WATCH, None, True, True)
         my_event_handler.on_closed = WatchDog.on_closed
         # my_event_handler.on_any_event = WatchDog.on_any_event  # remove if not debug
-        my_event_handler.on_any_event = lambda event: logger_mon.debug(f"wathcdog: {event}")
+        my_event_handler.on_any_event = lambda event: logger_mon.debug(f"watchdog: {event}")
 
         my_observer = Observer()
         my_observer.schedule(my_event_handler, cfg.FOLDER_TO_WATCH, recursive=False)
